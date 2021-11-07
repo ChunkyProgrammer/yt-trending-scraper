@@ -1,14 +1,11 @@
 {
-  "name": "@freetube/yt-trending-scraper",
-  "version": "2.0.1",
-  "description": "Identifies the currently trending videos on YouTube and returns all trending site information about every video without accessing the YouTube API.",
+  "name": "yt-hashtag-scraper",
+  "version": "1.0.0",
+  "description": "Extract and parse videos on YouTube Hashtag pages and returns information about every video without accessing the YouTube API.",
   "main": "index.js",
-  "scripts": {
-    "test": "jest --watchAll --verbose"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/FreeTubeApp/yt-trending-scraper.git"
+    "url": "https://github.com/FreeTubeApp/yt-hashtag-scraper.git"
   },
   "publishConfig": {
     "access": "public"
@@ -16,24 +13,20 @@
   "keywords": [
     "youtube",
     "youtube-fetch",
-    "youtube-scrapper",
+    "youtube-scraper",
     "youtube-grabber",
-    "youtube trending",
-    "youtube-trending",
+    "youtube hashtag",
+    "youtube-hashtags",
     "youtube without api",
     "youtube-fetcher",
-    "trending",
-    "youtube trending scraper",
-    "youtube trends scraper",
-    "youtube trends",
-    "trends"
+    "hashtag",
+    "youtube hashtag scraper",
+    "youtube hashtag page",
+    "hashtag page"
   ],
-  "author": "GilgusMaximus <software@lucahohmann.com>",
+  "author": "ChunkyProgrammer <onionchunky@protonmail.com>",
   "license": "GPLv3",
   "dependencies": {
-    "axios": "^0.21.1"
-  },
-  "devDependencies": {
-    "jest": "^27.0.4"
+    "axios": "^0.24.0"
   }
 }

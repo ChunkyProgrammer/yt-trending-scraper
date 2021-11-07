@@ -1,5 +1,5 @@
-# YouTube Trending Videos Scraper NodeJS Documentation
-This NodeJS library can scrape all available trending pages of YouTube without any API usage. It is developed for and tailored towards easy usage in the [FreeTube](https://github.com/FreeTubeApp/FreeTube-Vue) rewrite but can be used with any other project as well.
+# YouTube Hashtag Page Scraper NodeJS Documentation
+This NodeJS library can scrape all available hashtage pages of YouTube without any API usage. It is developed for and tailored towards easy usage in [FreeTube](https://github.com/FreeTubeApp/FreeTube) but can be used with any other project as well.
 
 Therefore, this library does not require any API keys, with the attached maximum quotas, but instead might take longer to receive the required data.
 
@@ -7,48 +7,43 @@ The library works as long as YouTube keeps its web page layout the same. Therefo
 If this library should not work at some point, please create an issue and let me know so that I can take a look into it. Pull requests are also welcomed in this case.
 
 ## Installation
-`npm install yt-trending-scraper`
+`npm install yt-hashtag-scraper`
 
 ## Usage
-`const ytrend = require("yt-trending-scraper")`
+`const ythash = require("yt-hashtag-scraper")`
 
 ## API
-**scrape_trending_page(_parameters_)**
-Returns a list of objects containing all the information of the trending videos.
+**scrape_hashtag_page(_parameters_)**
+Returns a list of objects containing all the information of the hashtag page.
 
 The parameters object can contain the following options:
 
 ``` 
- geoLocation:           String,
- parseCreatorOnRise:    Boolean,
- page:                  String
+ tag?:                   String,
+ continuation?:         String
+ geoLocation?:          String,
 ```
 
+__tag__ is a required parameter to change the hashtag page you're viewing
 
 __geoLocation__ is an optional parameter to change the country (e.g. JP for Japan) of the trending page. The alpha2 code of the country must be used
 
 
-__parseCreatorOnRise__ is an optional parameter which allows the parser to process any horizontal video list, which usually is a creator on the rise. But this is not always available, so the scraper will process as usual even when the parameter is set to true. Defaults to **false**
-
-
-__page__ is an optional parameter which allows to choose one of the 4 trending pages below.
-
-- `default`
-- `music`
-- `gaming`
-- `movies`
+__continuation__ is an option parameter to get the next page of the hashtag page you're viewing
 
 ### Example usage
 
 ```javascript
 const parameters = {
-    geoLocation: 'JP',
-    parseCreatorOnRise: false,
-    page: 'music'
+    tag: 'shorts'
 }
 
-ytrend.scrape_trending_page(parameters).then((data) =>{
-    console.log(data);
+ythash.scrape_hashtag_page(parameters).then((data) =>{
+    // console.log(data);
+    let continuation = data.continuation
+    ythash.scrape_hashtag_page({ continuation: continuation }).then((data2) => {
+        console.log(data2)
+    })
 }).catch((error)=>{
     console.log(error);
 });
@@ -86,4 +81,4 @@ ytrend.scrape_trending_page(parameters).then((data) =>{
 }
 ```
 ## Credits
-Thanks to PrestoN for the basic instructions and underlying request code and thanks to ~cadence for the HTML extractor RegEx. 
+Thanks to GilgusMaximus for the yt-trending-scraper module for which this is based on. Thanks to PrestoN for the basic instructions and underlying request code and thanks to ~cadence for the HTML extractor RegEx.

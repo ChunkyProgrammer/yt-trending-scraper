@@ -1,101 +1,49 @@
-const requester = require("./TrendingRequester")
+const requester = require("./HashtagRequester")
 
 class YoutubeScraper {
 
     //starting point
-    static async scrape_trending_page(parameters) {
+    static async scrape_hashtag_page(parameters) {
         let geoLocation = null
-        let page = 'default'
-        let parseCreatorOnRise = false
+        let tag = parameters.tag
+        let httpsAgent = parameters.httpsAgent
+        let continuation = parameters.continuation
         if (parameters) {
             if ('geoLocation' in parameters) {
                 geoLocation = parameters.geoLocation
             }
-            if ('page' in parameters) {
-                page = parameters.page
-            }
-            if ('parseCreatorOnRise' in parameters) {
-                parseCreatorOnRise = parameters.parseCreatorOnRise
-            }
         }
-        const request_data = await requester.requestTrendingPage(geoLocation, page);
-        return this.parse_new_html(request_data.data, parseCreatorOnRise);
+        const request_data = await requester.requestHashtagPage({getoLocation: geoLocation, tag: tag, continuation: continuation, httpsAgent: httpsAgent });
+        return this.parse_new_html(request_data.data, continuation);
     }
 
-    static parse_new_html(html_data, parseCreatorOnRise) {
+    static parse_new_html(html_data, continuationPassed) {
         // matches the special setup of the video elements
-        let jsonContent = '{' + html_data.match(/"sectionListRenderer".+?(},"tab)/)[0]
-        // remove the last chars in order to make it valid JSON
-        jsonContent = jsonContent.substr(0, jsonContent.length-5)
-        const contentArrayJSON = JSON.parse(jsonContent).sectionListRenderer.contents
+        let jsonContent
+        let contentArrayJSON
+        if (continuationPassed) { // data slightly different when continuation is used
+            jsonContent = html_data.onResponseReceivedActions[0].appendContinuationItemsAction
+            contentArrayJSON = jsonContent.continuationItems
+        } else {
+            jsonContent = '{' + html_data.match(/"twoColumnBrowseResultsRenderer".+?(},"tab)/)[0]
+            jsonContent = jsonContent.substr(0, jsonContent.length-5) + '}}]}}'
+            contentArrayJSON = JSON.parse(jsonContent).twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.richGridRenderer.contents
+        }
         let videos = []
         const current_time = Date.now();
-        contentArrayJSON.forEach((data) => {
-            const videoList = this.build_api_output(data.itemSectionRenderer.contents[0].shelfRenderer.content, current_time, parseCreatorOnRise)
-            videos = [...videos, ...videoList]
-        })
-        return videos
-    }
-    //access the one video container and build and object with all the data required
-    static build_api_output(videoList, currentTime, parseCreatorOnRise){
-        if ('horizontalListRenderer' in videoList && parseCreatorOnRise) {
-            // we have a creator on the rise element with other structure
-            return this.parse_horizontal_video_section(videoList.horizontalListRenderer.items, currentTime)
-        } else if('expandedShelfContentsRenderer' in videoList) {
-            // normal video section
-            return this.parse_normal_video_section(videoList.expandedShelfContentsRenderer.items, currentTime)
-        }
-        return []
-    }
-
-    static parse_horizontal_video_section(videoList, currentTime) {
-        const videoEntryList = []
-        videoList.forEach((videoRenderer) => {
-            videoRenderer = videoRenderer.gridVideoRenderer
-            let video_entry = {
-                videoId: -1,
-                title: "",
-                type: "video",
-                author: "",
-                authorId: "",
-                authorUrl: "",
-                videoThumbnails: [],
-                description: "",
-                viewCount: -1,
-                published: -1,
-                publishedText: "",
-                lengthSeconds: -1,
-                liveNow: false,
-                paid: false,
-                premium: false,
-                isUpcoming: false,
-                timeText: "",
-                isCreatorOnRise: true,
-            };
-
-            video_entry.videoId = videoRenderer.videoId;
-            video_entry.title = videoRenderer.title.runs[0].text;
-            video_entry.author = videoRenderer.shortBylineText.runs[0].text;
-            video_entry.authorId = videoRenderer.shortBylineText.runs[0].navigationEndpoint.browseEndpoint.browseId;
-            video_entry.authorUrl = videoRenderer.shortBylineText.runs[0].navigationEndpoint.commandMetadata.webCommandMetadata.url;
-            video_entry.viewCount = this.calculate_view_count(videoRenderer.viewCountText.simpleText);
-            video_entry.publishedText = videoRenderer.publishedTimeText.simpleText;
-            video_entry.published = this.calculate_published(video_entry.publishedText, currentTime);
-            video_entry.timeText = videoRenderer.thumbnailOverlays[0].thumbnailOverlayTimeStatusRenderer.text.simpleText;
-            video_entry.lengthSeconds = this.calculate_length_in_seconds(video_entry.timeText);
-            video_entry.videoThumbnails = this.extract_thumbnail_data(video_entry.videoId);
-            //check whether the property is available, because there can be videos without description which won't have an empty property
-            if(videoRenderer.hasOwnProperty("descriptionSnippet")){
-                video_entry.description = videoRenderer.descriptionSnippet.runs[0].text;
+        let continuation = null
+        contentArrayJSON.forEach((data,i ) => {
+            if ('richItemRenderer' in data) {
+                const video = this.parse_normal_video_section(data.richItemRenderer.content, current_time, i)
+                videos.push(video)
+            } else {               
+                continuation = data.continuationItemRenderer.continuationEndpoint.continuationCommand.token
             }
-            videoEntryList.push(video_entry);
         })
-        return videoEntryList
+        return { videos: videos, continuation: continuation }
     }
 
-    static parse_normal_video_section(videoList, currentTime) {
-        const videoEntryList = []
-        videoList.forEach((videoRenderer) => {
+    static parse_normal_video_section(videoRenderer, currentTime) {
             videoRenderer = videoRenderer.videoRenderer
             let video_entry = {
                 videoId: -1,
@@ -115,11 +63,9 @@ class YoutubeScraper {
                 premium: false,
                 isUpcoming: false,
                 timeText: "",
-                isCreatorOnRise: false,
                 isVerified: false,
                 isVerifiedArtist: false
             };
-
             video_entry.videoId = videoRenderer.videoId;
             video_entry.title = videoRenderer.title.runs[0].text;
             video_entry.author = videoRenderer.longBylineText.runs[0].text;
@@ -140,9 +86,7 @@ class YoutubeScraper {
             if(videoRenderer.hasOwnProperty("descriptionSnippet")){
                 video_entry.description = videoRenderer.descriptionSnippet.runs[0].text;
             }
-            videoEntryList.push(video_entry);
-        })
-        return videoEntryList
+        return video_entry
     }
 
     //calculates the length of the video in seconds as a number from the string "hh:mm:ss"
