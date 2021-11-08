@@ -21,13 +21,29 @@ class YoutubeScraper {
         // matches the special setup of the video elements
         let jsonContent
         let contentArrayJSON
+        let header 
         if (continuationPassed) { // data slightly different when continuation is used
             jsonContent = html_data.onResponseReceivedActions[0].appendContinuationItemsAction
             contentArrayJSON = jsonContent.continuationItems
         } else {
+            header = '{' + html_data.match(/"hashtagHeaderRenderer".+?(},"trackingParams)/)[0]
+            header = JSON.parse(header.substring(0, header.length -16)+'}}')
             jsonContent = '{' + html_data.match(/"twoColumnBrowseResultsRenderer".+?(},"tab)/)[0]
-            jsonContent = jsonContent.substr(0, jsonContent.length-5) + '}}]}}'
-            contentArrayJSON = JSON.parse(jsonContent).twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.richGridRenderer.contents
+            jsonContent = JSON.parse(jsonContent.substr(0, jsonContent.length-5) + '}}]}}')
+            contentArrayJSON = jsonContent.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.richGridRenderer.contents
+        }
+        let hashtag = ''
+        let hashtagVideosText = ""
+        let hashtagChannelText = ""
+        let hashtagBackgroundColor = null
+        let hashtagThumbnails = null
+        if (header) {
+            hashtag = header.hashtagHeaderRenderer.hashtag.simpleText
+            let hashtagInfoText = header.hashtagHeaderRenderer.hashtagInfoText.simpleText.split(' • ')
+            hashtagVideosText = hashtagInfoText[0]
+            hashtagChannelText = hashtagInfoText[1]
+            hashtagBackgroundColor = header.hashtagHeaderRenderer.backgroundColor
+            hashtagThumbnails = header.hashtagHeaderRenderer.backgroundImage.thumbnails
         }
         let videos = []
         const current_time = Date.now();
@@ -40,7 +56,15 @@ class YoutubeScraper {
                 continuation = data.continuationItemRenderer.continuationEndpoint.continuationCommand.token
             }
         })
-        return { videos: videos, continuation: continuation }
+        return {
+            hashtag: hashtag,
+            hashtagVideosText: hashtagVideosText,
+            hashtagChannelText: hashtagChannelText,
+            hashtagBackgroundColor: hashtagBackgroundColor,
+            hashtagThumbnails: hashtagThumbnails,
+            videos: videos, 
+            continuation: continuation 
+        }
     }
 
     static parse_normal_video_section(videoRenderer, currentTime) {

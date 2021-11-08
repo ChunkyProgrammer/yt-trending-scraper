@@ -48,7 +48,24 @@ ythash.scrape_hashtag_page(parameters).then((data) =>{
     console.log(error);
 });
 
-// The data is a list of objects containing the following attributes:
+// data is an object containing the following attributes:
+{
+    hashtag:                String,
+    hashtagVideosText:      String,
+    hashtagChannelText:     String,
+    hashtagBackgroundColor: Number,
+    hashtagThumbnails:      Array[Object],
+    videos:                 Array[Object],
+    continuation:           String
+}
+
+// data2 is an object containing the following attributes:
+{
+    videos:                 Array[Object],
+    continuation:           String
+}
+
+// videos is a list of objects containing the following attributes:
 {
     videoId:            String,
     title:              String,
@@ -67,7 +84,6 @@ ythash.scrape_hashtag_page(parameters).then((data) =>{
     paid:               false,
     premium:            false,
     isUpcoming:         false,
-    isCreatorOnRise:    Boolean, // indicates whether the video is part of a creator on the rise
     isVerified:         Boolean,
     isVerifiedArist:    Boolean
 }
